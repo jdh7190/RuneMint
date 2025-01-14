@@ -2,11 +2,12 @@ import { networks, payments, Psbt, address as baddr } from "belcoinjs-lib";
 import ECPairFactory from "belpair";
 import { none, RuneId, Runestone, some } from "runelib";
 import * as ecc from "bells-secp256k1";
+import dotenv from 'dotenv';
 
 const NETWORK = networks.bellcoin;
-const PRIVATE_KEY = "";
-const FEE_RATE = 2;
-const MINT_COUNT = 200; // MAX 1000
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const FEE_RATE = parseInt(process.env.FEE_RATE);
+const MINT_COUNT = parseInt(process.env.MINT_COUNT) || 200; // MAX 1000
 
 const ECPair = ECPairFactory(ecc);
 const API_URLS = {
@@ -14,15 +15,13 @@ const API_URLS = {
   mainnet: "https://api.nintondo.io/api",
 };
 
+const keyPair = ECPair.fromWIF(PRIVATE_KEY, networks.bellcoin);
+const { address } = payments.p2wpkh({pubkey: keyPair.publicKey, network: NETWORK});
+var mintCount = 0;
+
 async function mint() {
   const mintstone = new Runestone([], none(), some(new RuneId(1, 0)), some(1));
-
-  const keyPair = ECPair.fromWIF(PRIVATE_KEY, networks.bellcoin);
-
-  const { address } = payments.p2wpkh({
-    pubkey: keyPair.publicKey,
-    network: NETWORK,
-  });
+  //const mintstone = new Runestone([], none(), some(new RuneId(351349, 1)), some(1)); // BAGS GO TO THE MOON
 
   const minRequired = calculateFee(1, 2, FEE_RATE);
 
@@ -176,6 +175,9 @@ const checkedPushTx = async (txHex: string) => {
   if (res.ok) {
     const txid = await res.text();
     console.log(`Successfully pushed transaction ${txid}`);
+    mintCount++;
+    console.log(`MINTED ${mintCount} runes...`);
+    await sleep(100);
     return txid;
   } else {
     const message = await res.text();
@@ -192,12 +194,13 @@ const checkedPushTx = async (txHex: string) => {
   }
 };
 
+const sleep = timeout => { return new Promise(resolve => setTimeout(resolve, timeout)) }
+
 while (true) {
   const toPush = await mint();
 
   while (toPush.length > 0) {
     const res = await checkedPushTx(toPush[0]);
-
     if (typeof res === "boolean" && res === true) {
       toPush.shift();
     } else if (typeof res === "undefined") {
