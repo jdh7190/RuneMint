@@ -197,17 +197,23 @@ const checkedPushTx = async (txHex: string) => {
 const sleep = timeout => { return new Promise(resolve => setTimeout(resolve, timeout)) }
 
 while (true) {
-  const toPush = await mint();
+  try {
+    const toPush = await mint();
 
-  while (toPush.length > 0) {
-    const res = await checkedPushTx(toPush[0]);
-    if (typeof res === "boolean" && res === true) {
-      toPush.shift();
-    } else if (typeof res === "undefined") {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      continue;
-    } else {
-      toPush.shift();
+    while (toPush.length > 0) {
+      const res = await checkedPushTx(toPush[0]);
+      if (typeof res === "boolean" && res === true) {
+        toPush.shift();
+      } else if (typeof res === "undefined") {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        continue;
+      } else {
+        toPush.shift();
+      }
     }
+  } catch(e) {
+    console.log(e);
+    console.log(`ERROR MINTING RUNES, WAITING 1 MIN BEFORE RETRYING...`)
+    await sleep(60000);
   }
 }
