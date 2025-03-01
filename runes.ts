@@ -8,6 +8,7 @@ const NETWORK = networks.bellcoin;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const FEE_RATE = parseInt(process.env.FEE_RATE);
 const MINT_COUNT = parseInt(process.env.MINT_COUNT) || 200; // MAX 1000
+const SLEEP_TIMER = parseInt(process.env.SLEEP_TIMER) || 60000; // default to 60 seconds if parameter not set
 
 const ECPair = ECPairFactory(ecc);
 const API_URLS = {
@@ -205,7 +206,7 @@ while (true) {
       if (typeof res === "boolean" && res === true) {
         toPush.shift();
       } else if (typeof res === "undefined") {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 10000));
         continue;
       } else {
         toPush.shift();
@@ -213,7 +214,7 @@ while (true) {
     }
   } catch(e) {
     console.log(e);
-    console.log(`ERROR MINTING RUNES, WAITING 1 MIN BEFORE RETRYING...`)
-    await sleep(60000);
+    console.log(`ERROR MINTING RUNES, WAITING ${SLEEP_TIMER / 60000} MIN BEFORE RETRYING...`)
+    await sleep(SLEEP_TIMER);
   }
 }
